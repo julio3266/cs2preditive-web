@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a0a0a;
+  --card: #141414;
+  --border: #262626;
+  --accent: #f97316;
+  --muted: #737373;
+}
+
+body {
+  background: var(--bg);
+  color: #fafafa;
+  min-height: 100vh;
+}
+
+.font-geist-sans {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.font-geist-mono {
+  font-family: var(--font-geist-mono), monospace;
+}
