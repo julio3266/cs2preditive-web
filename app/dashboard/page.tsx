@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { matches, predictions, type Match, type Prediction, type BettingLine } from '@/lib/api';
@@ -35,20 +35,50 @@ export default function DashboardPage() {
     }
   }, [searchParams]);
 
-  useEffect(() => {
+  const fetchMatches = useCallback(() => {
     const token = localStorage.getItem('token');
-    if (!token) return;
-    setLoadError(null);
-    Promise.all([matches.upcoming(), predictions.list()])
-      .then(([m, p]) => {
-        setMatchList(m);
+    if (!token) return Promise.resolve();
+    return Promise.all([matches.upcoming(), matches.live(), predictions.list()])
+      .then(([upcoming, live, p]) => {
         setPredictionList(p);
+        setMatchList((prev) => {
+          const byId = new Map<string, Match>();
+          prev.forEach((m) => byId.set(m.id, m));
+          upcoming.forEach((m) => byId.set(m.id, m));
+          live.forEach((m) => byId.set(m.id, m));
+          const merged = Array.from(byId.values()).filter(
+            (m) => m.status === 'live' || m.status === 'scheduled'
+          );
+          return merged.sort((a, b) => {
+            if (a.status === 'live' && b.status !== 'live') return -1;
+            if (a.status !== 'live' && b.status === 'live') return 1;
+            return (b.updatedAt || '').localeCompare(a.updatedAt || '');
+          });
+        });
       })
       .catch((err) => {
         setLoadError(err instanceof Error ? err.message : 'Erro ao carregar partidas.');
-      })
-      .finally(() => setLoading(false));
+      });
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    setLoadError(null);
+    fetchMatches().finally(() => setLoading(false));
+  }, [fetchMatches]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    const interval = setInterval(() => {
+      fetchMatches();
+    }, 25_000);
+    return () => clearInterval(interval);
+  }, [fetchMatches]);
 
   const liveMatches = matchList.filter((m) => m.status === 'live');
   const scheduledMatches = matchList.filter((m) => m.status === 'scheduled');
