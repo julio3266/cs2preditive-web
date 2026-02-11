@@ -63,6 +63,8 @@ export const stripe = {
 export const matches = {
   list: () => api<Array<Match>>('/matches'),
   live: () => api<Array<Match>>('/matches/live'),
+  /** Apenas ao vivo + agendadas (para dashboard e calendário) */
+  upcoming: () => api<Array<Match>>('/matches/upcoming'),
   one: (id: string) => api<Match>(`/matches/${id}`),
 };
 
@@ -70,6 +72,23 @@ export const predictions = {
   list: () => api<Array<Prediction>>('/predictions'),
   forMatch: (matchId: string) => api<Prediction>(`/predictions/${matchId}`),
 };
+
+export interface PlayerState {
+  name: string;
+  team: 'A' | 'B';
+  kills: number;
+  deaths: number;
+  assists: number;
+  money: number;
+  weapons: string[];
+}
+
+export interface RoundState {
+  roundNumber: number;
+  winner?: 'A' | 'B';
+  teamAKills: number;
+  teamBKills: number;
+}
 
 export interface Match {
   id: string;
@@ -82,6 +101,17 @@ export interface Match {
   league?: string;
   startTime?: string;
   updatedAt: string;
+  players?: PlayerState[];
+  rounds?: RoundState[];
+  currentRound?: number;
+  halfTimeScore?: { teamA: number; teamB: number };
+}
+
+export interface BettingLine {
+  type: 'winner' | 'handicap' | 'ht' | 'overtime';
+  label: string;
+  options: { label: string; odds: number; pick?: 'teamA' | 'teamB' | 'yes' | 'no'; confidencePercent?: number }[];
+  reason?: string;
 }
 
 export interface Prediction {
@@ -90,4 +120,5 @@ export interface Prediction {
   confidence: number;
   reason: string;
   odds?: { teamA: number; teamB: number };
+  lines?: BettingLine[];
 }
